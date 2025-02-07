@@ -2,7 +2,18 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 모바일 반응형 설정 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>짝맞추기 포켓몬(이미지-이미지)</title>
+  
+  <!-- 홈 화면 바로가기 아이콘 (iOS) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="https://pokemonkorea.co.kr/img/main_logo.png">
+  <!-- 파비콘 (기타 플랫폼) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://pokemonkorea.co.kr/img/main_logo.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://pokemonkorea.co.kr/img/main_logo.png">
+  <!-- 웹 앱 매니페스트 -->
+  <link rel="manifest" href="manifest.json">
+  
   <style>
     /* 기본 레이아웃 및 스타일 */
     body {
@@ -33,34 +44,40 @@
     }
     /* 게임판: 4열 x 5행 (총 20장 카드) */
     .memory-game {
-      width: 640px;
-      height: 800px;
+      width: 100%;
+      max-width: 640px; /* 최대 폭 제한 */
+      height: auto;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
+      margin: 0 auto;
     }
     .memory-card {
       width: 100%;
-      height: 100%;
+      /* 카드 비율을 유지하기 위한 패딩 기법 (정사각형) */
+      height: 0;
+      padding-bottom: 100%;
       position: relative;
       transform: scale(1);
       transform-style: preserve-3d;
       transition: transform 0.5s;
       cursor: pointer;
     }
+    /* 카드 내부 요소: 앞면, 뒷면 모두 같은 위치에 배치 */
+    .memory-card > * {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 5px;
+      backface-visibility: hidden;
+    }
     /* 카드 뒤집힘 상태 */
     .memory-card.flip {
       transform: rotateY(180deg);
     }
-    /* 카드 앞면과 뒷면 */
-    .memory-card .front-face,
-    .memory-card .back-face {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      border-radius: 5px;
-      backface-visibility: hidden;
-    }
+    /* 카드 앞면과 뒷면 스타일 */
     .memory-card .front-face {
       transform: rotateY(180deg);
       object-fit: cover;
