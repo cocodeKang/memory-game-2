@@ -1,7 +1,7 @@
 {
-  "name": "Your App Name",
-  "short_name": "App",
-  "start_url": "/",
+  "name": "포켓몬카드짝맞추기",
+  "short_name": "포카짝",
+  "start_url": "https://cocodekang.github.io/memory-game-2/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2c3e50",
