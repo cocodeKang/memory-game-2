@@ -20,10 +20,11 @@
       margin: 20px 0;
       text-align: center;
     }
-    #startButton {
+    #startButton, #toggleMusic {
       padding: 10px 20px;
       font-size: 1rem;
       cursor: pointer;
+      margin: 0 5px;
     }
     #timer {
       font-size: 1.5rem;
@@ -74,9 +75,10 @@
   </style>
 </head>
 <body>
-  <!-- 게임 컨트롤: 시작 버튼과 타이머 -->
+  <!-- 게임 컨트롤: 시작 버튼, 타이머, 배경음악 제어 버튼 -->
   <div id="controls">
     <button id="startButton">게임 시작</button>
+    <button id="toggleMusic">음악 정지</button>
     <div id="timer">0초</div>
   </div>
   
@@ -85,19 +87,23 @@
 
   <!-- 효과음 파일 (sounds 폴더에 준비) -->
   <audio id="flipSound" src="sounds/flip.wav"></audio>
-  <audio id="matchSound" src="sounds/match.wav"></audio>
-  <audio id="mismatchSound" src="sounds/mismatch.wav"></audio>
+  <audio id="matchSound" src="sounds/match.mp3"></audio>
+  <audio id="mismatchSound" src="sounds/mismatch.mp3"></audio>
+  <!-- 배경음악 추가 (원하는 음악 파일로 대체) -->
+  <audio id="bgMusic" src="sounds/Pokemon Diamond and Pearl - Dialga Palkia Battle Music.mp3" loop></audio>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const startButton = document.getElementById('startButton');
+      const toggleMusic = document.getElementById('toggleMusic');
       const timerDisplay = document.getElementById('timer');
       const memoryGame = document.getElementById('memoryGame');
-
       // 효과음 엘리먼트
       const flipSound = document.getElementById('flipSound');
       const matchSound = document.getElementById('matchSound');
       const mismatchSound = document.getElementById('mismatchSound');
+      // 배경음악 엘리먼트
+      const bgMusic = document.getElementById('bgMusic');
 
       let timerInterval;
       let startTime;
@@ -119,8 +125,19 @@
         allImages.push(imageUrl);
       }
 
-      // 시작 버튼 클릭 시 게임 시작
+      // 게임 시작 버튼 클릭 시 게임 시작
       startButton.addEventListener('click', startGame);
+      
+      // 배경음악 토글 버튼: 음악 재생/정지
+      toggleMusic.addEventListener('click', () => {
+        if (bgMusic.paused) {
+          bgMusic.play();
+          toggleMusic.textContent = '음악 정지';
+        } else {
+          bgMusic.pause();
+          toggleMusic.textContent = '음악 재생';
+        }
+      });
 
       function startGame() {
         // 시작 버튼 비활성화
@@ -137,6 +154,11 @@
         startTime = Date.now();
         timerInterval = setInterval(updateTimer, 1000);
         updateTimer(); // 즉시 타이머 갱신
+
+        // 배경음악 시작 (새 게임 시작 시 처음부터 재생)
+        bgMusic.currentTime = 0;
+        bgMusic.play();
+        toggleMusic.textContent = '음악 정지';
 
         // 게임판 구성
         initializeGameBoard();
