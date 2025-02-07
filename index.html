@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>메모리 게임 (4x5 & 100 이미지 풀)</title>
+  <title>짝맞추기 포켓몬(이미지-이미지)</title>
   <style>
     /* 기본 레이아웃 및 스타일 */
     body {
@@ -16,11 +16,12 @@
       min-height: 100vh;
       color: #ecf0f1;
     }
+    /* 게임 컨트롤 영역: 음악 토글 버튼과 타이머 */
     #controls {
       margin: 20px 0;
       text-align: center;
     }
-    #startButton, #toggleMusic {
+    #toggleMusic {
       padding: 10px 20px;
       font-size: 1rem;
       cursor: pointer;
@@ -30,7 +31,7 @@
       font-size: 1.5rem;
       margin-top: 10px;
     }
-    /* 게임판: 4열 x 5행 (총 20장) */
+    /* 게임판: 4열 x 5행 (총 20장 카드) */
     .memory-game {
       width: 640px;
       height: 800px;
@@ -72,63 +73,164 @@
       font-size: 2rem;
       color: #34495e;
     }
+    /* 안내(Instruction) 오버레이 스타일 */
+    #instructionOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(44, 62, 80, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+      text-align: center;
+      padding: 20px;
+    }
+    #instructionOverlay .instruction-content {
+      background-color: #34495e;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 300px;
+      width: 90%;
+    }
+    #instructionOverlay input {
+      padding: 8px;
+      font-size: 1rem;
+      margin: 10px 0;
+      width: 80%;
+    }
+    #instructionOverlay button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    /* 순위(Leaderboard) 오버레이 스타일 */
+    #rankingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(44, 62, 80, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+      text-align: center;
+      padding: 20px;
+    }
+    #rankingOverlay .ranking-content {
+      background-color: #34495e;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 300px;
+      width: 90%;
+    }
+    #rankingOverlay ul {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0;
+      text-align: left;
+    }
+    #rankingOverlay li {
+      margin: 5px 0;
+      background: #2c3e50;
+      padding: 5px;
+      border-radius: 3px;
+    }
+    #rankingOverlay button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <!-- 게임 컨트롤: 시작 버튼, 타이머, 배경음악 제어 버튼 -->
+  <!-- 안내(Instruction) 오버레이: 게임 시작 전 이름 입력 및 게임 설명 -->
+  <div id="instructionOverlay">
+    <div class="instruction-content">
+      <h2>메모리 게임</h2>
+      <p>
+        이 게임은 100개의 이미지 풀에서 무작위로 선택된 10쌍의 이미지를 뒤집어<br>
+        같은 이미지를 찾는 게임입니다.<br>
+        (목표는 “이미지와 동일한 이미지를 찾는 것”입니다.)
+      </p>
+      <input type="text" id="playerName" placeholder="이름을 입력하세요">
+      <button id="startButton">게임 시작</button>
+    </div>
+  </div>
+  
+  <!-- 순위(Leaderboard) 오버레이: 게임 종료 후 순위 기록 및 관리자 기능 -->
+  <div id="rankingOverlay" style="display:none;">
+    <div class="ranking-content">
+      <h2>순위</h2>
+      <ul id="rankingList"></ul>
+      <button id="restartButton">다시 시작하기</button>
+      <button id="resetRankingButton">순위 데이터 초기화</button>
+    </div>
+  </div>
+  
+  <!-- 게임 컨트롤 영역: 배경음악 토글 버튼과 타이머 -->
   <div id="controls">
-    <button id="startButton">게임 시작</button>
     <button id="toggleMusic">음악 정지</button>
     <div id="timer">0초</div>
   </div>
   
   <!-- 메모리 게임 보드 -->
   <div class="memory-game" id="memoryGame"></div>
-
-  <!-- 효과음 파일 (sounds 폴더에 준비) -->
+  
+  <!-- 효과음 및 배경음악 -->
   <audio id="flipSound" src="sounds/flip.wav"></audio>
   <audio id="matchSound" src="sounds/match.mp3"></audio>
   <audio id="mismatchSound" src="sounds/mismatch.mp3"></audio>
-  <!-- 배경음악 추가 (원하는 음악 파일로 대체) -->
   <audio id="bgMusic" src="sounds/bgmusic1.mp3" loop></audio>
-
+  
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // DOM 요소 가져오기
+      const instructionOverlay = document.getElementById('instructionOverlay');
+      const rankingOverlay = document.getElementById('rankingOverlay');
+      const playerNameInput = document.getElementById('playerName');
       const startButton = document.getElementById('startButton');
+      const restartButton = document.getElementById('restartButton');
+      const resetRankingButton = document.getElementById('resetRankingButton');
       const toggleMusic = document.getElementById('toggleMusic');
       const timerDisplay = document.getElementById('timer');
       const memoryGame = document.getElementById('memoryGame');
-      // 효과음 엘리먼트
+      
       const flipSound = document.getElementById('flipSound');
       const matchSound = document.getElementById('matchSound');
       const mismatchSound = document.getElementById('mismatchSound');
-      // 배경음악 엘리먼트
       const bgMusic = document.getElementById('bgMusic');
-
+      
+      // 배경음악 볼륨 50% 적용
+      bgMusic.volume = 0.5;
+      
       let timerInterval;
       let startTime;
       let matchedPairs = 0;
       let hasFlippedCard = false;
       let lockBoard = false;
       let firstCard, secondCard;
-      // 한 게임당 쌍의 개수 (4x5 그리드이면 20장, 즉 10쌍)
       const numPairs = 10;
-
-      // 100개의 이미지 URL을 생성 (i=1~100)
+      
+      let currentPlayerName = "";
+      
+      // 100개의 이미지 URL 풀 생성 (i=1~100)
       const allImages = [];
       for (let i = 1; i <= 100; i++) {
-        // 숫자 계산: i*100+1 예) 1 => 101, 2 => 201, ...
         let num = i * 100 + 1;
-        // 6자리로 왼쪽에 0을 채워줌 (예: 101 → "000101")
         let paddedNum = ("000000" + num).slice(-6);
         let imageUrl = `https://data1.pokemonkorea.co.kr/newdata/pokedex/mid/${paddedNum}.png`;
         allImages.push(imageUrl);
       }
-
-      // 게임 시작 버튼 클릭 시 게임 시작
-      startButton.addEventListener('click', startGame);
       
-      // 배경음악 토글 버튼: 음악 재생/정지
+      // 배경음악 토글 버튼 이벤트
       toggleMusic.addEventListener('click', () => {
         if (bgMusic.paused) {
           bgMusic.play();
@@ -138,102 +240,102 @@
           toggleMusic.textContent = '음악 재생';
         }
       });
-
+      
+      // 게임 시작 버튼 이벤트 (이름 입력 및 게임 설명 후)
+      startButton.addEventListener('click', startGame);
+      
       function startGame() {
-        // 시작 버튼 비활성화
-        startButton.disabled = true;
-        // 게임판 초기화 (재시작 시 이전 내용 제거)
-        memoryGame.innerHTML = '';
+        const name = playerNameInput.value.trim();
+        if (!name) {
+          alert("게임을 시작하기 전에 이름을 입력하세요.");
+          return;
+        }
+        currentPlayerName = name;
+        instructionOverlay.style.display = 'none';
+        rankingOverlay.style.display = 'none';
+        
+        // 게임 관련 변수 초기화
         matchedPairs = 0;
         hasFlippedCard = false;
         lockBoard = false;
         firstCard = null;
         secondCard = null;
-
+        
         // 타이머 시작
         startTime = Date.now();
         timerInterval = setInterval(updateTimer, 1000);
-        updateTimer(); // 즉시 타이머 갱신
-
-        // 배경음악 시작 (새 게임 시작 시 처음부터 재생)
+        updateTimer();
+        
+        // 배경음악 새 게임 시작 시 처음부터 재생
         bgMusic.currentTime = 0;
         bgMusic.play();
         toggleMusic.textContent = '음악 정지';
-
+        
         // 게임판 구성
         initializeGameBoard();
       }
-
-      // 타이머 업데이트 (초 단위)
+      
       function updateTimer() {
         let elapsed = Math.floor((Date.now() - startTime) / 1000);
         timerDisplay.textContent = elapsed + "초";
       }
-
-      // 게임판에 카드 생성
+      
       function initializeGameBoard() {
-        // 100개 이미지 풀에서 무작위로 numPairs (10)개의 이미지를 선택
+        // 100개 이미지 풀에서 무작위로 numPairs (10)개 선택
         const shuffledAllImages = allImages.sort(() => 0.5 - Math.random());
         const selectedImages = shuffledAllImages.slice(0, numPairs);
-
-        // 각 선택된 이미지를 2장씩 복제하여 카드 배열 생성
+        
         let cardsArray = [];
         selectedImages.forEach((img, index) => {
-          // 각 카드의 id는 index (0 ~ numPairs-1)
           cardsArray.push({ id: index, img: img });
           cardsArray.push({ id: index, img: img });
         });
-
-        // 카드 배열 섞기
+        
         cardsArray.sort(() => 0.5 - Math.random());
-
-        // 카드 요소 생성 및 게임판 추가
+        
+        memoryGame.innerHTML = '';
+        
         cardsArray.forEach(card => {
           const cardElement = document.createElement('div');
           cardElement.classList.add('memory-card');
           cardElement.dataset.id = card.id;
-
-          // 앞면: 포켓몬 이미지
+          
           const frontFace = document.createElement('img');
           frontFace.classList.add('front-face');
           frontFace.src = card.img;
           frontFace.alt = "Pokemon";
-
-          // 뒷면: "?" 표시
+          
           const backFace = document.createElement('div');
           backFace.classList.add('back-face');
           backFace.textContent = "?";
-
+          
           cardElement.appendChild(frontFace);
           cardElement.appendChild(backFace);
           memoryGame.appendChild(cardElement);
-
-          // 카드 클릭 이벤트 연결
+          
           cardElement.addEventListener('click', flipCard);
         });
       }
-
-      // 카드 클릭 시 동작
+      
       function flipCard() {
         if (lockBoard) return;
         if (this === firstCard) return;
-
+        
         this.classList.add('flip');
         flipSound.currentTime = 0;
         flipSound.play();
-
+        
         if (!hasFlippedCard) {
           hasFlippedCard = true;
           firstCard = this;
           return;
         }
-
+        
         secondCard = this;
         lockBoard = true;
         checkForMatch();
       }
-
-      // 두 카드가 일치하는지 확인
+      
       function checkForMatch() {
         let isMatch = firstCard.dataset.id === secondCard.dataset.id;
         if (isMatch) {
@@ -246,26 +348,23 @@
           unflipCards();
         }
       }
-
-      // 일치하는 경우: 카드 클릭 이벤트 제거 후 게임 완료 여부 확인
+      
       function disableCards() {
         firstCard.removeEventListener('click', flipCard);
         secondCard.removeEventListener('click', flipCard);
         matchedPairs++;
-        // 모든 쌍(10쌍)을 맞춘 경우
         if (matchedPairs === numPairs) {
           clearInterval(timerInterval);
           let elapsed = Math.floor((Date.now() - startTime) / 1000);
           setTimeout(() => {
             alert("축하합니다! 게임을 완료했습니다. 걸린 시간: " + elapsed + "초");
-            // 다시 시작할 수 있도록 시작 버튼 활성화 (원하는 경우)
-            startButton.disabled = false;
+            storeRecord(currentPlayerName, elapsed);
+            displayRanking();
           }, 500);
         }
         resetBoard();
       }
-
-      // 불일치하는 경우: 일정 시간 후 다시 뒤집기
+      
       function unflipCards() {
         setTimeout(() => {
           firstCard.classList.remove('flip');
@@ -273,12 +372,51 @@
           resetBoard();
         }, 1000);
       }
-
-      // 보드 상태 초기화
+      
       function resetBoard() {
         [hasFlippedCard, lockBoard] = [false, false];
         [firstCard, secondCard] = [null, null];
       }
+      
+      // 기록 저장 (localStorage 사용)
+      function storeRecord(name, time) {
+        const record = { name, time };
+        let records = JSON.parse(localStorage.getItem('memoryGameRecords')) || [];
+        records.push(record);
+        records.sort((a, b) => a.time - b.time);
+        localStorage.setItem('memoryGameRecords', JSON.stringify(records));
+      }
+      
+      // 순위(기록) 표시
+      function displayRanking() {
+        let records = JSON.parse(localStorage.getItem('memoryGameRecords')) || [];
+        const rankingList = document.getElementById('rankingList');
+        rankingList.innerHTML = '';
+        records.forEach((rec, index) => {
+          const li = document.createElement('li');
+          li.textContent = `${index + 1}위: ${rec.name} - ${rec.time}초`;
+          rankingList.appendChild(li);
+        });
+        memoryGame.innerHTML = '';
+        timerDisplay.textContent = "0초";
+        rankingOverlay.style.display = 'flex';
+      }
+      
+      // 다시 시작하기 버튼: 순위 오버레이 숨기고 안내(Instruction) 오버레이 표시
+      restartButton.addEventListener('click', () => {
+        rankingOverlay.style.display = 'none';
+        instructionOverlay.style.display = 'flex';
+        playerNameInput.value = "";
+      });
+      
+      // 관리자용: 순위 데이터 초기화 버튼
+      resetRankingButton.addEventListener('click', () => {
+        if (confirm("정말로 순위 데이터를 초기화하시겠습니까?")) {
+          localStorage.removeItem('memoryGameRecords');
+          displayRanking();
+        }
+      });
+      
     });
   </script>
 </body>
